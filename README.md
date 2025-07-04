@@ -1,28 +1,91 @@
-# Pet-project
-Пет проект Дата инженера.
-Описание
-Проект реализует полный цикл обработки, трансформации и анализа данных о продажах. Использованы современные инструменты ETL, хранилище данных (NDS, DDS), оркестрация с Apache Airflow и визуализация в Power BI.
 
-Стек технологий
-Python, PostgreSQL, Airflow.
-Power BI
-DBeaver (для работы со схемами написание SQL-запросов)
-## Этапы проекта
-* Извлечение данных: CSV-файл с транзакциями продаж
-* Загрузка и очистка: удаление дубликатов, проверка типов и NULL'ов
-* ODS слой: нормализованная структура с ключевыми таблицами (клиенты, товары, даты, филиалы, продажи)
-* DDS слой: витрина данных в виде схемы "звезда" с таблицей фактов и измерениями
-* Оркестрация DAG'ами: настройка ETL и проверки качества в Apache Airflow
-* Визуализация: дашборды в Power BI
-* DAG'и в Airflow
-- `weather_collector - загрузка в слой ODS
-- `load_dds_data_quality - построение витрины (DDS)
-- `weather_data_quality - проверка качества данных (NULL, дубликаты, отрицательные значения)
-- `dds_for_weather - построение и загрузка витрины (DDS) из ODS
-Дашборды в Power BI
-Анализ продаж по городам
-Покупки клиентов по категориям товаров
-Динамика продаж по месяцам
-Процент продаж по методу оплаты
-Результат
-Проект демонстрирует навыки работы с хранилищами, построения ETL и визуального анализа данных.
+# Пет проект Дата инженера.
+В этом проекте я создаю свой первый проект в качестве дата инженера.
+В основе лежат реальные данные о погоде из сайта [OpenWeather](https://openweathermap.org)
+
+Используемые интрументы: Dbeaver Postgresql, VS code Python, Apache Airflow, Docker, Power BI.
+
+## Этапы проекта:
+
+- Архитектрура проекта
+- Регистрация на [сайте](https://openweathermap.org/api) и получаем API
+- Создание схемы и таблицы в Postgresql
+- Пишем код ETL- процессов c Python 
+- Создание dag для оркестрации ETL в Airflow 
+- Построение дашбордов для аналитики в Power BI
+
+## Архитектура проекта
+![Схема Архитектуры проекта](https://github.com/user-attachments/assets/c4263006-26e2-459a-b715-351c2bc0a2e9)
+
+## Создание схемы и таблицы в Postgresql
+
+```sql
+create schema if not exists weather;
+create schema if not exists dds;
+
+create table weather.weather_raw (
+    weather_id serial primary key,
+    city varchar,
+    dt_utc timestamp,
+    temperature float4,
+    humidity int,
+    wind_speed float4,
+    created_at timestamp default now()
+);
+
+
+create table dds.dim_city (
+    city_id serial primary key,
+    city_name varchar(30) unique
+);
+
+create table dds.fact_weather (
+    fact_id serial primary key,
+    city_id int references dds.dim_city(city_id),
+    dt_utc timestamp,
+    temperature float4,
+    humidity int,
+    wind_speed float4,
+    unique (city_id, dt_utc)
+```
+
+## Пострение ETL
+Пишем скрипт `weather_collector.py` - получение данных из API и загрузки в ODS
+библиотеки для:
+* получения url-сайта через `requests`
+* подключение к БД через psycopg2
+* datetime, timezone для получения данных о времени и о часовом поясе
+   
+```python
+import requests
+import psycopg2
+from datetime import datetime, timezone
+```
+Получились две функции из которых:
+1. Берет данные о городе, даты-временени и часового пояса, температуры, влажности, скорости ветра
+2. Полученные записи сохраняются на прежде созданной схеме ODS в таблице `weather_raw` в postgres
+
+Пишем скрипт `dds_for_weather.py` - загрузка данных в слой DDS из ODS
+библиотеки:
+* psycopg2
+* datetime, timezone
+```python
+import psycopg2
+from datetime import datetime, timezone
+```
+Создал функцию с SQL-логикой внутри:
+* Данные загружаются на нормализованную схему DDS (таблица фактов с одной зависимостью.)
+
+К схеме `dds` добавляем таблицу логов Data quality которое создается при загрузки данных `weather_data_quality.py`
+библиотеки:
+* psycopg2
+* datetime, timezone
+```python
+import psycopg2
+from datetime import datetime
+```
+Написана одна функция с двумя логиками - проверка на NULL и проверка на дубликаты.
+
+
+
+
