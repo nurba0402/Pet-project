@@ -86,6 +86,17 @@ from datetime import datetime
 ```
 Написана одна функция с двумя логиками - проверка на NULL и проверка на дубликаты.
 
+##Создание DAG для оркестрации в AirflowР
+* Разворачиваем контейнер оркестратора:
+```cmd
+cd ./airflow
+
+docker-compose up -d
+```
+* Переходим по хосту [Airflow](http://localhost:8080) 
+* dag для `weather_collector.py`
+* dag для `weather_data_quality` и `dds_to_weather` 
+
 ## Пострение дашбордов для аналитики в Power BI
 `Пет проект.pbix`
 * Добавлено вычисляемое поле `HourOnly` - выводит только часы(HH:00).
